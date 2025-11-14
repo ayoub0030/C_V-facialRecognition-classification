@@ -16,28 +16,53 @@ video_capture = cv2.VideoCapture(0)
 #face expression recognizer initialization
 import json
 
-# Define custom objects needed for loading the model
-custom_objects = {
-    'VarianceScaling': tf.keras.initializers.VarianceScaling,
-    'Zeros': tf.keras.initializers.Zeros,
-    'Sequential': tf.keras.Sequential,
-    'Conv2D': tf.keras.layers.Conv2D,
-    'MaxPooling2D': tf.keras.layers.MaxPooling2D,
-    'AveragePooling2D': tf.keras.layers.AveragePooling2D,
-    'Flatten': tf.keras.layers.Flatten,
-    'Dense': tf.keras.layers.Dense,
-    'Dropout': tf.keras.layers.Dropout
-}
-
-# Try loading the model using the architecture and weights
-model = tf.keras.models.model_from_json(open("facial_expression_model_structure.json", "r").read(),
-                                      custom_objects=custom_objects)
-model.load_weights('facial_expression_model_weights.h5')
-
-# Compile the model
-model.compile(optimizer='adam',
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
+# Try loading the model directly from the weights file
+# This works for models saved with model.save_weights()
+try:
+    # First, create a new model with the same architecture
+    model = tf.keras.Sequential([
+        tf.keras.layers.Conv2D(64, (5, 5), activation='relu', input_shape=(48, 48, 1)),
+        tf.keras.layers.MaxPooling2D(pool_size=(5, 5), strides=(2, 2)),
+        tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+        tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+        tf.keras.layers.AveragePooling2D(pool_size=(3, 3), strides=(2, 2)),
+        tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
+        tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
+        tf.keras.layers.AveragePooling2D(pool_size=(3, 3), strides=(2, 2)),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(1024, activation='relu'),
+        tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Dense(1024, activation='relu'),
+        tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Dense(7, activation='softmax')
+    ])
+    
+    # Then load the weights
+    model.load_weights('facial_expression_model_weights.h5')
+    
+    # Compile the model
+    model.compile(optimizer='adam',
+                 loss='categorical_crossentropy',
+                 metrics=['accuracy'])
+    print("Model loaded successfully!")
+    
+except Exception as e:
+    print(f"Error loading model: {e}")
+    print("Trying alternative loading method...")
+    
+    # Fallback to the original method if the first one fails
+    try:
+        with open("facial_expression_model_structure.json", "r") as json_file:
+            model_json = json_file.read()
+        model = tf.keras.models.model_from_json(model_json)
+        model.load_weights('facial_expression_model_weights.h5')
+        model.compile(optimizer='adam',
+                     loss='categorical_crossentropy',
+                     metrics=['accuracy'])
+        print("Model loaded using fallback method!")
+    except Exception as e2:
+        print(f"Failed to load model: {e2}")
+        exit(1)
 #-----------------------------
 
 emotions = ('angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral')
