@@ -16,27 +16,25 @@ video_capture = cv2.VideoCapture(0)
 #face expression recognizer initialization
 import json
 
-# Load model architecture
-with open("facial_expression_model_structure.json", "r") as json_file:
-    model_json = json_file.read()
-
-# Create model from JSON with custom objects
+# Define custom objects needed for loading the model
 custom_objects = {
     'VarianceScaling': tf.keras.initializers.VarianceScaling,
-    'Zeros': tf.keras.initializers.Zeros
+    'Zeros': tf.keras.initializers.Zeros,
+    'Sequential': tf.keras.Sequential,
+    'Conv2D': tf.keras.layers.Conv2D,
+    'MaxPooling2D': tf.keras.layers.MaxPooling2D,
+    'AveragePooling2D': tf.keras.layers.AveragePooling2D,
+    'Flatten': tf.keras.layers.Flatten,
+    'Dense': tf.keras.layers.Dense,
+    'Dropout': tf.keras.layers.Dropout
 }
 
-# Load the model
-model = tf.keras.models.model_from_json(model_json, custom_objects=custom_objects)
-
-# Load weights
+# Try loading the model using the architecture and weights
+model = tf.keras.models.model_from_json(open("facial_expression_model_structure.json", "r").read(),
+                                      custom_objects=custom_objects)
 model.load_weights('facial_expression_model_weights.h5')
 
-# Explicitly set the input shape
-input_shape = (48, 48, 1)
-model.build((None, *input_shape))  # Add batch dimension
-
-# Compile the model (needed for prediction)
+# Compile the model
 model.compile(optimizer='adam',
               loss='categorical_crossentropy',
               metrics=['accuracy'])
